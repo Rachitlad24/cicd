@@ -1,0 +1,65 @@
+name: Build and Deploy React App
+
+on:
+  push:
+    branches:
+      - main  # Runs on push to the main branch
+
+permissions:  
+  contents: write  # ✅ Required for GitHub Pages deployment
+
+jobs:
+  build:
+    name: Build React App
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Project
+        run: npm run build  # Ensure this generates 'dist/' folder
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: react-dist
+          path: dist/
+          retention-days: 1  # Keeps artifact for 1 day
+
+  deploy:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: build  # Ensures deployment runs only after the build succeeds
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false  # ✅ Avoids Git conflicts
+
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: react-dist
+          path: dist/
+
+      - name: List Downloaded Files (Debugging Step)
+        run: ls -R dist/
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}  # ✅ Authentication Fix
+          branch: master
+          folder: dist
+          clean: true  # ✅ Ensures no leftover files cause issues
+
